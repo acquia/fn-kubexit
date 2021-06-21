@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -14,6 +14,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/karlkfi/kubexit/pkg/kubernetes"
+	"github.com/karlkfi/kubexit/pkg/log"
 	"github.com/karlkfi/kubexit/pkg/supervisor"
 	"github.com/karlkfi/kubexit/pkg/tombstone"
 
@@ -24,21 +25,18 @@ import (
 func main() {
 	var err error
 
-	// remove log timestamp
-	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
-
 	args := os.Args[1:]
 	if len(args) == 0 {
-		log.Println("Error: no arguments found")
+		log.Error(errors.New("no arguments found"), "Error: no arguments found")
 		os.Exit(2)
 	}
 
 	name := os.Getenv("KUBEXIT_NAME")
 	if name == "" {
-		log.Println("Error: missing env var: KUBEXIT_NAME")
+		log.Error(errors.New("missing env var: KUBEXIT_NAME"), "Error: missing env var: KUBEXIT_NAME")
 		os.Exit(2)
 	}
-	log.Printf("Name: %s\n", name)
+	log.Info("Name: %s", name)
 
 	graveyard := os.Getenv("KUBEXIT_GRAVEYARD")
 	if graveyard == "" {
@@ -47,30 +45,30 @@ func main() {
 		graveyard = strings.TrimRight(graveyard, "/")
 		graveyard = filepath.Clean(graveyard)
 	}
-	log.Printf("Graveyard: %s\n", graveyard)
+	log.Info("Graveyard: %s", graveyard)
 
 	ts := &tombstone.Tombstone{
 		Graveyard: graveyard,
 		Name:      name,
 	}
-	log.Printf("Tombstone: %s\n", ts.Path())
+	log.Info("Tombstone: %s", ts.Path())
 
 	birthDepsStr := os.Getenv("KUBEXIT_BIRTH_DEPS")
 	var birthDeps []string
 	if birthDepsStr == "" {
-		log.Println("Birth Deps: N/A")
+		log.Info("Birth Deps: N/A")
 	} else {
 		birthDeps = strings.Split(birthDepsStr, ",")
-		log.Printf("Birth Deps: %s\n", strings.Join(birthDeps, ","))
+		log.Info("Birth Deps: %s", strings.Join(birthDeps, ","))
 	}
 
 	deathDepsStr := os.Getenv("KUBEXIT_DEATH_DEPS")
 	var deathDeps []string
 	if deathDepsStr == "" {
-		log.Println("Death Deps: N/A")
+		log.Info("Death Deps: N/A")
 	} else {
 		deathDeps = strings.Split(deathDepsStr, ",")
-		log.Printf("Death Deps: %s\n", strings.Join(deathDeps, ","))
+		log.Info("Death Deps: %s", strings.Join(deathDeps, ","))
 	}
 
 	birthTimeout := 30 * time.Second
@@ -78,43 +76,43 @@ func main() {
 	if birthTimeoutStr != "" {
 		birthTimeout, err = time.ParseDuration(birthTimeoutStr)
 		if err != nil {
-			log.Printf("Error: failed to parse birth timeout: %v\n", err)
+			log.Error(err, "Error: failed to parse birth timeout")
 			os.Exit(2)
 		}
 	}
-	log.Printf("Birth Timeout: %s\n", birthTimeout)
+	log.Info("Birth Timeout: %s\n", birthTimeout)
 
 	gracePeriod := 30 * time.Second
 	gracePeriodStr := os.Getenv("KUBEXIT_GRACE_PERIOD")
 	if gracePeriodStr != "" {
 		gracePeriod, err = time.ParseDuration(gracePeriodStr)
 		if err != nil {
-			log.Printf("Error: failed to parse grace period: %v\n", err)
+			log.Error(err, "Error: failed to parse grace period")
 			os.Exit(2)
 		}
 	}
-	log.Printf("Grace Period: %s\n", gracePeriod)
+	log.Info("Grace Period: %s", gracePeriod)
 
 	podName := os.Getenv("KUBEXIT_POD_NAME")
 	if podName == "" {
 		if len(birthDeps) > 0 {
-			log.Println("Error: missing env var: KUBEXIT_POD_NAME")
+			log.Error(errors.New("missing env var: KUBEXIT_POD_NAME"), "Error: missing env var: KUBEXIT_POD_NAME")
 			os.Exit(2)
 		}
-		log.Println("Pod Name: N/A")
+		log.Info("Pod Name: N/A")
 	} else {
-		log.Printf("Pod Name: %s\n", podName)
+		log.Info("Pod Name: %s", podName)
 	}
 
 	namespace := os.Getenv("KUBEXIT_NAMESPACE")
 	if namespace == "" {
 		if len(birthDeps) > 0 {
-			log.Println("Error: missing env var: KUBEXIT_NAMESPACE")
+			log.Error(errors.New("missing env var: KUBEXIT_NAMESPACE"), "Error: missing env var: KUBEXIT_NAMESPACE")
 			os.Exit(2)
 		}
-		log.Println("Namespace: N/A")
+		log.Info("Namespace: N/A")
 	} else {
-		log.Printf("Namespace: %s\n", namespace)
+		log.Info("Namespace: %s", namespace)
 	}
 
 	child := supervisor.New(args[0], args[1:]...)
@@ -125,7 +123,7 @@ func main() {
 		// stop graveyard watchers on exit, if not sooner
 		defer stopGraveyardWatcher()
 
-		log.Println("Watching graveyard...")
+		log.Info("Watching graveyard...")
 		err = tombstone.Watch(ctx, graveyard, onDeathOfAny(deathDeps, func() {
 			stopGraveyardWatcher()
 			// trigger graceful shutdown
@@ -133,7 +131,7 @@ func main() {
 			err := child.ShutdownWithTimeout(gracePeriod)
 			// ShutdownWithTimeout doesn't block until timeout
 			if err != nil {
-				log.Printf("Error: failed to shutdown: %v\n", err)
+				log.Error(err, "Error: failed to shutdown")
 			}
 		}))
 		if err != nil {
@@ -162,7 +160,7 @@ func main() {
 
 	err = ts.RecordDeath(code)
 	if err != nil {
-		log.Printf("Error: %v\n", err)
+		log.Error(err, "Error: failed to record death")
 		os.Exit(1)
 	}
 
@@ -177,7 +175,7 @@ func waitForBirthDeps(birthDeps []string, namespace, podName string, timeout tim
 	// Stop pod watcher on exit, if not sooner
 	defer stopPodWatcher()
 
-	log.Println("Watching pod updates...")
+	log.Info("Watching pod updates...")
 	err := kubernetes.WatchPod(ctx, namespace, podName,
 		onReadyOfAll(birthDeps, stopPodWatcher),
 	)
@@ -195,7 +193,7 @@ func waitForBirthDeps(birthDeps []string, namespace, podName string, timeout tim
 		return fmt.Errorf("waiting for birth deps to be ready: %v", err)
 	}
 
-	log.Printf("All birth deps ready: %v\n", strings.Join(birthDeps, ", "))
+	log.Info("All birth deps ready: %v", strings.Join(birthDeps, ", "))
 	return nil
 }
 
@@ -214,7 +212,7 @@ func withCancelOnSignal(ctx context.Context, signals ...os.Signal) context.Conte
 				if !ok {
 					return
 				}
-				log.Printf("Received shutdown signal: %v", s)
+				log.Info("Received shutdown signal: %v", s)
 				cancel()
 			case <-ctx.Done():
 				signal.Reset()
@@ -236,10 +234,10 @@ func waitForChildExit(child *supervisor.Supervisor) int {
 		} else {
 			code = -1
 		}
-		log.Printf("Child Exited(%d): %v\n", code, err)
+		log.Info("Child Exited(%d): %v", code, err)
 	} else {
 		code = 0
-		log.Println("Child Exited(0)")
+		log.Info("Child Exited(0)")
 	}
 	return code
 }
@@ -247,12 +245,12 @@ func waitForChildExit(child *supervisor.Supervisor) int {
 // fatalf is for terminal errors.
 // The child process may or may not be running.
 func fatalf(child *supervisor.Supervisor, ts *tombstone.Tombstone, msg string, args ...interface{}) {
-	log.Printf(msg, args...)
+	log.Info(msg, args...)
 
 	// Skipped if not started.
 	err := child.ShutdownNow()
 	if err != nil {
-		log.Printf("Error: failed to shutdown child process: %v", err)
+		log.Error(err, "Error: failed to shutdown child process")
 		os.Exit(1)
 	}
 
@@ -264,7 +262,7 @@ func fatalf(child *supervisor.Supervisor, ts *tombstone.Tombstone, msg string, a
 	// Another process may be waiting for it.
 	err = ts.RecordDeath(code)
 	if err != nil {
-		log.Printf("Error: %v\n", err)
+		log.Error(err, "Error: failed to record death")
 		os.Exit(1)
 	}
 
@@ -288,7 +286,7 @@ func onReadyOfAll(birthDeps []string, callback func()) kubernetes.EventHandler {
 
 		pod, ok := event.Object.(*corev1.Pod)
 		if !ok {
-			log.Printf("Error: unexpected non-pod object type: %+v\n", event.Object)
+			log.Error(fmt.Errorf("unexpected non-pod object type: %+v", event.Object), "Error: unexpected non-pod object type")
 			return
 		}
 
@@ -328,16 +326,16 @@ func onDeathOfAny(deathDeps []string, callback func()) tombstone.EventHandler {
 		graveyard := filepath.Dir(event.Name)
 		name := filepath.Base(event.Name)
 
-		log.Printf("Tombstone modified: %s\n", name)
+		log.Info("Tombstone modified: %s", name)
 		if _, ok := deathDepSet[name]; !ok {
 			// ignore other tombstones
 			return
 		}
 
-		log.Printf("Reading tombstone: %s\n", name)
+		log.Info("Reading tombstone: %s", name)
 		ts, err := tombstone.Read(graveyard, name)
 		if err != nil {
-			log.Printf("Error: failed to read tombstone: %v\n", err)
+			log.Error(err, "Error: failed to read tombstone")
 			return
 		}
 
@@ -345,8 +343,8 @@ func onDeathOfAny(deathDeps []string, callback func()) tombstone.EventHandler {
 			// still alive
 			return
 		}
-		log.Printf("New death: %s\n", name)
-		log.Printf("Tombstone(%s): %s\n", name, ts)
+		log.Info("New death: %s", name)
+		log.Info("Tombstone(%s): %s", name, ts)
 
 		callback()
 	}

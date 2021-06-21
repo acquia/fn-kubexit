@@ -19,3 +19,6 @@
 
 # Test graveyard
 .graveyard
+
+# Editor
+.idea

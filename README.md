@@ -56,6 +56,7 @@ kubexit is configured with environment variables only, to make it easy to config
 Tombstone:
 - `KUBEXIT_NAME` - The name of the tombstone file to use. Must match the name of the Kubernetes pod container, if using birth dependency.
 - `KUBEXIT_GRAVEYARD` - The file path of the graveyard directory, where tombstones will be read and written.
+- `KUBEXIT_LOG_LEVEL` - The log level for logged messages. Default: `info`.
 
 Death Dependency:
 - `KUBEXIT_DEATH_DEPS` - The name(s) of this process death dependencies, comma separated.
