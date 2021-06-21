@@ -5,8 +5,7 @@ go 1.14
 require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-logr/logr v0.4.0
-	go.uber.org/zap v1.17.0 // indirect
-	golang.org/x/tools v0.1.3 // indirect
+	go.uber.org/zap v1.17.0
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v0.21.1
