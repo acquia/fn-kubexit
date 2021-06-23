@@ -59,14 +59,14 @@ func WatchPod(ctx context.Context, namespace, podName string, eventHandler Event
 		// watch until deleted
 		_, err := watchtools.UntilWithSync(ctx, lw, &corev1.Pod{}, nil, func(event watch.Event) (bool, error) {
 			if event.Type == watch.Error {
-				log.Info("Pod Watch(%s): recoverable error: %+v", podName, event.Object)
+				log.Info("Pod Watch(name): recoverable error: object", "name", podName, "object", event.Object)
 				return false, nil
 			}
 
 			eventHandler(event)
 
 			if event.Type == watch.Deleted {
-				log.Info("Pod Watch(%s): pod deleted", podName)
+				log.Info("Pod Watch(name): pod deleted", "name", podName)
 				return true, nil
 			}
 			return false, nil
@@ -75,9 +75,9 @@ func WatchPod(ctx context.Context, namespace, podName string, eventHandler Event
 		// Since cancellation is the only way we exit, just ignore it.
 		if err != nil && err != wait.ErrWaitTimeout {
 			// TODO: should we do something about this??
-			log.Error(err, "Pod Watch(%s): terminal error", podName)
+			log.Error(err, "Pod Watch(name): terminal error", "name", podName)
 		}
-		log.Info("Pod Watch(%s): done", podName)
+		log.Info("Pod Watch(name): done", "name", podName)
 	}()
 
 	return nil

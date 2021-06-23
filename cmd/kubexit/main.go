@@ -36,7 +36,7 @@ func main() {
 		log.Error(errors.New("missing env var: KUBEXIT_NAME"), "Error: missing env var: KUBEXIT_NAME")
 		os.Exit(2)
 	}
-	log.Info("Name: %s", name)
+	log.Info("Name: name", "name", name)
 
 	graveyard := os.Getenv("KUBEXIT_GRAVEYARD")
 	if graveyard == "" {
@@ -45,13 +45,13 @@ func main() {
 		graveyard = strings.TrimRight(graveyard, "/")
 		graveyard = filepath.Clean(graveyard)
 	}
-	log.Info("Graveyard: %s", graveyard)
+	log.Info("Graveyard: graveyard", "graveyard", graveyard)
 
 	ts := &tombstone.Tombstone{
 		Graveyard: graveyard,
 		Name:      name,
 	}
-	log.Info("Tombstone: %s", ts.Path())
+	log.Info("Tombstone: tombstone", "tombstone", ts.Path())
 
 	birthDepsStr := os.Getenv("KUBEXIT_BIRTH_DEPS")
 	var birthDeps []string
@@ -59,7 +59,7 @@ func main() {
 		log.Info("Birth Deps: N/A")
 	} else {
 		birthDeps = strings.Split(birthDepsStr, ",")
-		log.Info("Birth Deps: %s", strings.Join(birthDeps, ","))
+		log.Info("Birth Deps: deps", "deps", strings.Join(birthDeps, ","))
 	}
 
 	deathDepsStr := os.Getenv("KUBEXIT_DEATH_DEPS")
@@ -68,7 +68,7 @@ func main() {
 		log.Info("Death Deps: N/A")
 	} else {
 		deathDeps = strings.Split(deathDepsStr, ",")
-		log.Info("Death Deps: %s", strings.Join(deathDeps, ","))
+		log.Info("Death Deps: deps", "deps", strings.Join(deathDeps, ","))
 	}
 
 	birthTimeout := 30 * time.Second
@@ -80,7 +80,7 @@ func main() {
 			os.Exit(2)
 		}
 	}
-	log.Info("Birth Timeout: %s\n", birthTimeout)
+	log.Info("Birth Timeout: timeout", "timeout", birthTimeout)
 
 	gracePeriod := 30 * time.Second
 	gracePeriodStr := os.Getenv("KUBEXIT_GRACE_PERIOD")
@@ -91,7 +91,7 @@ func main() {
 			os.Exit(2)
 		}
 	}
-	log.Info("Grace Period: %s", gracePeriod)
+	log.Info("Grace Period: period", "period", gracePeriod)
 
 	podName := os.Getenv("KUBEXIT_POD_NAME")
 	if podName == "" {
@@ -101,7 +101,7 @@ func main() {
 		}
 		log.Info("Pod Name: N/A")
 	} else {
-		log.Info("Pod Name: %s", podName)
+		log.Info("Pod Name: name", "name", podName)
 	}
 
 	namespace := os.Getenv("KUBEXIT_NAMESPACE")
@@ -112,7 +112,7 @@ func main() {
 		}
 		log.Info("Namespace: N/A")
 	} else {
-		log.Info("Namespace: %s", namespace)
+		log.Info("Namespace: namespace", "namespace", namespace)
 	}
 
 	child := supervisor.New(args[0], args[1:]...)
@@ -135,25 +135,25 @@ func main() {
 			}
 		}))
 		if err != nil {
-			fatalf(child, ts, "Error: failed to watch graveyard: %v\n", err)
+			fatalf(child, ts, err, "Error: failed to watch graveyard")
 		}
 	}
 
 	if len(birthDeps) > 0 {
 		err = waitForBirthDeps(birthDeps, namespace, podName, birthTimeout)
 		if err != nil {
-			fatalf(child, ts, "Error: %v\n", err)
+			fatalf(child, ts, err, "Error: failed waiting for birth deps")
 		}
 	}
 
 	err = child.Start()
 	if err != nil {
-		fatalf(child, ts, "Error: %v\n", err)
+		fatalf(child, ts, err, "Error: failed starting child")
 	}
 
 	err = ts.RecordBirth()
 	if err != nil {
-		fatalf(child, ts, "Error: %v\n", err)
+		fatalf(child, ts, err, "Error: failed recording birth")
 	}
 
 	code := waitForChildExit(child)
@@ -193,7 +193,7 @@ func waitForBirthDeps(birthDeps []string, namespace, podName string, timeout tim
 		return fmt.Errorf("waiting for birth deps to be ready: %v", err)
 	}
 
-	log.Info("All birth deps ready: %v", strings.Join(birthDeps, ", "))
+	log.Info("All birth deps ready: deps", "deps", strings.Join(birthDeps, ", "))
 	return nil
 }
 
@@ -212,7 +212,7 @@ func withCancelOnSignal(ctx context.Context, signals ...os.Signal) context.Conte
 				if !ok {
 					return
 				}
-				log.Info("Received shutdown signal: %v", s)
+				log.Info("Received shutdown signal: Signal", "Signal", s)
 				cancel()
 			case <-ctx.Done():
 				signal.Reset()
@@ -234,7 +234,7 @@ func waitForChildExit(child *supervisor.Supervisor) int {
 		} else {
 			code = -1
 		}
-		log.Info("Child Exited(%d): %v", code, err)
+		log.Info("Child Exited(code): err", "code", code, "err", err)
 	} else {
 		code = 0
 		log.Info("Child Exited(0)")
@@ -244,8 +244,8 @@ func waitForChildExit(child *supervisor.Supervisor) int {
 
 // fatalf is for terminal errors.
 // The child process may or may not be running.
-func fatalf(child *supervisor.Supervisor, ts *tombstone.Tombstone, msg string, args ...interface{}) {
-	log.Info(msg, args...)
+func fatalf(child *supervisor.Supervisor, ts *tombstone.Tombstone, fatalErr error, msg string, args ...interface{}) {
+	log.Error(fatalErr, msg, args...)
 
 	// Skipped if not started.
 	err := child.ShutdownNow()
@@ -326,13 +326,13 @@ func onDeathOfAny(deathDeps []string, callback func()) tombstone.EventHandler {
 		graveyard := filepath.Dir(event.Name)
 		name := filepath.Base(event.Name)
 
-		log.Info("Tombstone modified: %s", name)
+		log.Info("Tombstone modified: name", "name", name)
 		if _, ok := deathDepSet[name]; !ok {
 			// ignore other tombstones
 			return
 		}
 
-		log.Info("Reading tombstone: %s", name)
+		log.Info("Reading tombstone: name", "name", name)
 		ts, err := tombstone.Read(graveyard, name)
 		if err != nil {
 			log.Error(err, "Error: failed to read tombstone")
@@ -343,8 +343,8 @@ func onDeathOfAny(deathDeps []string, callback func()) tombstone.EventHandler {
 			// still alive
 			return
 		}
-		log.Info("New death: %s", name)
-		log.Info("Tombstone(%s): %s", name, ts)
+		log.Info("New death: name", "name", name)
+		log.Info("Tombstone(name): tombstone", "name", name, "tombstone", ts)
 
 		callback()
 	}
