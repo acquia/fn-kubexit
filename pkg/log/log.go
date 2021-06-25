@@ -34,9 +34,9 @@ func Logger() logr.Logger {
 }
 
 func Error(err error, msg string, keysAndValues ...interface{}) {
-	logger.Error(err, msg, keysAndValues)
+	logger.Error(err, msg, keysAndValues...)
 }
 
 func Info(msg string, keysAndValues ...interface{}) {
-	logger.Info(msg, keysAndValues)
+	logger.Info(msg, keysAndValues...)
 }
