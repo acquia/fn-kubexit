@@ -40,3 +40,7 @@ func Error(err error, msg string, keysAndValues ...interface{}) {
 func Info(msg string, keysAndValues ...interface{}) {
 	logger.Info(msg, keysAndValues...)
 }
+
+func Warn(msg string, keysAndValues ...interface{}) {
+	logger.V(-1).Info(msg, keysAndValues...)
+}

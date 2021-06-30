@@ -36,7 +36,7 @@ func main() {
 		log.Error(errors.New("missing env var: KUBEXIT_NAME"), "Error: missing env var: KUBEXIT_NAME")
 		os.Exit(2)
 	}
-	log.Info("Name: name", "name", name)
+	log.Info("Name:", "name", name)
 
 	graveyard := os.Getenv("KUBEXIT_GRAVEYARD")
 	if graveyard == "" {
@@ -45,13 +45,13 @@ func main() {
 		graveyard = strings.TrimRight(graveyard, "/")
 		graveyard = filepath.Clean(graveyard)
 	}
-	log.Info("Graveyard: graveyard", "graveyard", graveyard)
+	log.Info("Graveyard:", "graveyard", graveyard)
 
 	ts := &tombstone.Tombstone{
 		Graveyard: graveyard,
 		Name:      name,
 	}
-	log.Info("Tombstone: tombstone", "tombstone", ts.Path())
+	log.Info("Tombstone:", "tombstone", ts.Path())
 
 	birthDepsStr := os.Getenv("KUBEXIT_BIRTH_DEPS")
 	var birthDeps []string
@@ -59,7 +59,7 @@ func main() {
 		log.Info("Birth Deps: N/A")
 	} else {
 		birthDeps = strings.Split(birthDepsStr, ",")
-		log.Info("Birth Deps: deps", "deps", strings.Join(birthDeps, ","))
+		log.Info("Birth Deps:", "birth deps", strings.Join(birthDeps, ","))
 	}
 
 	deathDepsStr := os.Getenv("KUBEXIT_DEATH_DEPS")
@@ -68,7 +68,7 @@ func main() {
 		log.Info("Death Deps: N/A")
 	} else {
 		deathDeps = strings.Split(deathDepsStr, ",")
-		log.Info("Death Deps: deps", "deps", strings.Join(deathDeps, ","))
+		log.Info("Death Deps:", "death deps", strings.Join(deathDeps, ","))
 	}
 
 	birthTimeout := 30 * time.Second
@@ -80,7 +80,7 @@ func main() {
 			os.Exit(2)
 		}
 	}
-	log.Info("Birth Timeout: timeout", "timeout", birthTimeout)
+	log.Info("Birth Timeout:", "birth timeout", birthTimeout)
 
 	gracePeriod := 30 * time.Second
 	gracePeriodStr := os.Getenv("KUBEXIT_GRACE_PERIOD")
@@ -91,7 +91,7 @@ func main() {
 			os.Exit(2)
 		}
 	}
-	log.Info("Grace Period: period", "period", gracePeriod)
+	log.Info("Grace Period:", "grace period", gracePeriod)
 
 	podName := os.Getenv("KUBEXIT_POD_NAME")
 	if podName == "" {
@@ -101,7 +101,7 @@ func main() {
 		}
 		log.Info("Pod Name: N/A")
 	} else {
-		log.Info("Pod Name: name", "name", podName)
+		log.Info("Pod Name:", "pod name", podName)
 	}
 
 	namespace := os.Getenv("KUBEXIT_NAMESPACE")
@@ -112,7 +112,7 @@ func main() {
 		}
 		log.Info("Namespace: N/A")
 	} else {
-		log.Info("Namespace: namespace", "namespace", namespace)
+		log.Info("Namespace:", "namespace", namespace)
 	}
 
 	child := supervisor.New(args[0], args[1:]...)
@@ -193,7 +193,7 @@ func waitForBirthDeps(birthDeps []string, namespace, podName string, timeout tim
 		return fmt.Errorf("waiting for birth deps to be ready: %v", err)
 	}
 
-	log.Info("All birth deps ready: deps", "deps", strings.Join(birthDeps, ", "))
+	log.Info("All birth deps ready:", "birth deps", strings.Join(birthDeps, ", "))
 	return nil
 }
 
@@ -212,7 +212,7 @@ func withCancelOnSignal(ctx context.Context, signals ...os.Signal) context.Conte
 				if !ok {
 					return
 				}
-				log.Info("Received shutdown signal: Signal", "Signal", s)
+				log.Info("Received shutdown signal:", "signal", s)
 				cancel()
 			case <-ctx.Done():
 				signal.Reset()
@@ -234,7 +234,7 @@ func waitForChildExit(child *supervisor.Supervisor) int {
 		} else {
 			code = -1
 		}
-		log.Info("Child Exited(code): err", "code", code, "err", err)
+		log.Info("Child Exited:", "code", code, "err", err)
 	} else {
 		code = 0
 		log.Info("Child Exited(0)")
@@ -326,13 +326,13 @@ func onDeathOfAny(deathDeps []string, callback func()) tombstone.EventHandler {
 		graveyard := filepath.Dir(event.Name)
 		name := filepath.Base(event.Name)
 
-		log.Info("Tombstone modified: name", "name", name)
+		log.Info("Tombstone modified:", "name", name)
 		if _, ok := deathDepSet[name]; !ok {
 			// ignore other tombstones
 			return
 		}
 
-		log.Info("Reading tombstone: name", "name", name)
+		log.Info("Reading tombstone:", "name", name)
 		ts, err := tombstone.Read(graveyard, name)
 		if err != nil {
 			log.Error(err, "Error: failed to read tombstone")
@@ -343,8 +343,8 @@ func onDeathOfAny(deathDeps []string, callback func()) tombstone.EventHandler {
 			// still alive
 			return
 		}
-		log.Info("New death: name", "name", name)
-		log.Info("Tombstone(name): tombstone", "name", name, "tombstone", ts)
+		log.Info("New death:", "name", name)
+		log.Info("Tombstone:", "name", name, "tombstone", ts)
 
 		callback()
 	}

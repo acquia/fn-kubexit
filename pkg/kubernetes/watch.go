@@ -59,14 +59,14 @@ func WatchPod(ctx context.Context, namespace, podName string, eventHandler Event
 		// watch until deleted
 		_, err := watchtools.UntilWithSync(ctx, lw, &corev1.Pod{}, nil, func(event watch.Event) (bool, error) {
 			if event.Type == watch.Error {
-				log.Info("Pod Watch(name): recoverable error: object", "name", podName, "object", event.Object)
+				log.Warn("Pod Watch: recoverable error:", "name", podName, "object", event.Object)
 				return false, nil
 			}
 
 			eventHandler(event)
 
 			if event.Type == watch.Deleted {
-				log.Info("Pod Watch(name): pod deleted", "name", podName)
+				log.Info("Pod Watch: pod deleted", "name", podName)
 				return true, nil
 			}
 			return false, nil
