@@ -96,7 +96,7 @@ func main() {
 	podName := os.Getenv("KUBEXIT_POD_NAME")
 	if podName == "" {
 		if len(birthDeps) > 0 {
-			log.Error(errors.New("missing env var: KUBEXIT_POD_NAME"), "Error: missing env var: KUBEXIT_POD_NAME")
+			log.Error(errors.New("missing env var: KUBEXIT_POD_NAME"), "missing env var", "var_name", "KUBEXIT_POD_NAME)
 			os.Exit(2)
 		}
 		log.Info("Pod Name: N/A")
