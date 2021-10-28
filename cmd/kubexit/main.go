@@ -20,6 +20,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/retry"
 )
 
 func main() {
@@ -176,21 +177,33 @@ func waitForBirthDeps(birthDeps []string, namespace, podName string, timeout tim
 	defer stopPodWatcher()
 
 	log.Info("Watching pod updates...")
-	err := kubernetes.WatchPod(ctx, namespace, podName,
-		onReadyOfAll(birthDeps, stopPodWatcher),
+	retryerr := retry.OnError(
+		retry.DefaultBackoff,
+		func(err error) bool {
+			return err == context.DeadlineExceeded
+		},
+		func() error {
+			err := kubernetes.WatchPod(ctx, namespace, podName,
+				onReadyOfAll(birthDeps, stopPodWatcher),
+			)
+			if err != nil {
+				return fmt.Errorf("failed to watch pod: %v", err)
+			}
+			return nil
+		},
 	)
-	if err != nil {
-		return fmt.Errorf("failed to watch pod: %v", err)
+	if retryerr != nil {
+		return fmt.Errorf("retry watching pods failed: %v", retryerr)
 	}
 
 	// Block until all birth deps are ready
 	<-ctx.Done()
-	err = ctx.Err()
-	if err == context.DeadlineExceeded {
+	retryerr = ctx.Err()
+	if retryerr == context.DeadlineExceeded {
 		return fmt.Errorf("timed out waiting for birth deps to be ready: %s", timeout)
-	} else if err != nil && err != context.Canceled {
+	} else if retryerr != nil && retryerr != context.Canceled {
 		// ignore canceled. shouldn't be other errors, but just in case...
-		return fmt.Errorf("waiting for birth deps to be ready: %v", err)
+		return fmt.Errorf("waiting for birth deps to be ready: %v", retryerr)
 	}
 
 	log.Info("All birth deps ready:", "birth deps", strings.Join(birthDeps, ", "))
