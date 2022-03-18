@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/fsnotify/fsnotify v1.5.1
-	github.com/go-logr/logr v0.4.0
+	github.com/go-logr/logr v1.2.3
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0
