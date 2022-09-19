@@ -5,6 +5,12 @@ fn-kubexit is a mirrored image of [karlkfi/kubexit](https://github.com/karlkfi/k
 ## Artifactory
 The mirrored image is pushed to [JFrog Artifactory](https://jfrog.com/artifactory/)
 
+## Development
+
+Run [prepare-for-development.sh](prepare-for-development.sh). It will create a mirror directory where you will do your patching.
+Do your changes in mirror, don't do any commits or git add.
+Run [create-patch.sh](create-patch.sh) once done, it will create a patch in patches out of the uncommitted changes in mirror.
+
 https://jfrog.ais.acquia.io/ui/repos/tree/General/devops-pipeline-dev/fn-kubexit
 
 ## Use case
