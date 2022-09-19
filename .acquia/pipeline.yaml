@@ -3,6 +3,30 @@ type: default
 team: ngc
 service: fn-kubexit
 
+# These credentials are defined once and used multiple times
+_imagecredentials: &imagecredentials
+    secrets:
+      - type: vault
+        key: AWS_ACCESS_KEY_ID
+        value: AWS_ACCESS_KEY_ID
+        path: secret/fn-drupal-operator/AWS_ACCESS_KEY_ID
+      - type: vault
+        key: AWS_SECRET_ACCESS_KEY
+        value: AWS_SECRET_ACCESS_KEY
+        path: secret/fn-drupal-operator/AWS_SECRET_ACCESS_KEY
+      - type: vault
+        key: AWS_MFA_DEVICE
+        value: AWS_MFA_DEVICE
+        path: secret/fn-drupal-operator/AWS_MFA_DEVICE
+      - type: vault
+        key: AWS_MFA_SECRET
+        value: AWS_MFA_SECRET
+        path: secret/fn-drupal-operator/AWS_MFA_SECRET
+      - type: vault
+        key: SSH_KEY
+        value: GIT_SSH_KEY
+        path: secret/pipeline-default/GIT_SSH_KEY
+
 # Validate the formatting of the pipeline.yaml file.
 validate_config: true
 
@@ -40,7 +64,8 @@ build:
       - name: 'fn-kubexit'
         file: 'mirror/Dockerfile'
         context: '.'
-
+        build_args:
+          - *imagecredentials
 # TODO: Should we enable security_scan?
 # This step performs container image security scan in Jfrog Xray via Artifactory
 # Build will fail whenever a vulnerability is found unless set to true.
