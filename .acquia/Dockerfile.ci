@@ -1,6 +1,6 @@
 ARG REPO_LOCATION
-FROM ${REPO_LOCATION}golang:1.19
-ARG K3D_VERSION=v5.4.6
+FROM ${REPO_LOCATION}golang:1.20
+ARG K3D_VERSION=v5.4.7
 
 RUN apt-get update && \
     apt-get install -y \
@@ -15,11 +15,11 @@ RUN apt-get update && \
 
 # ENVs
 ENV GO_BINDATA_VERSION=v1.0.0 \
-    GOLANGCI_LINT_VERSION=v1.50.1 \
+    GOLANGCI_LINT_VERSION=v1.51.1 \
     MISSPELL_VERSION=v0.3.4 \
-    GORELEASER_VERSION=v1.13.0 \
-    K8S_VERSION=v1.25.4 \
-    HELM_VERSION=v3.10.2
+    GORELEASER_VERSION=v1.15.2 \
+    K8S_VERSION=v1.25.6 \
+    HELM_VERSION=v3.11.1
 
 # Installing docker
 RUN curl -fsSL https://get.docker.com -o get-docker.sh
