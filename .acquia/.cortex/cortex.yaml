@@ -1,0 +1,24 @@
+openapi: 3.0.1
+info:
+  title: fn-kubexit
+  description: a desc
+  x-cortex-tag: acquia/fn-kubexit
+  x-cortex-git:
+    github:
+      repository: acquia/fn-kubexit
+  x-cortex-owners:
+    - type: GROUP
+      name: acquia/ngc-web
+      provider: GITHUB
+      description: ngcweb team
+    - type: SLACK
+      channel: cloud-eng-ngc-web
+      notificationsEnabled: true
+      description: Team channel
+  x-cortex-groups:
+    - drupal-cloud
+    - is-customer-facing
+  x-cortex-oncall:
+    pagerduty:
+      id: PW9J9B6
+      type: SERVICE
