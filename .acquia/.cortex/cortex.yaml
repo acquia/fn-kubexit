@@ -17,7 +17,6 @@ info:
       description: Team channel
   x-cortex-groups:
     - drupal-cloud
-    - is-customer-facing
   x-cortex-oncall:
     pagerduty:
       id: PW9J9B6
